@@ -1,0 +1,22 @@
+{
+  "name": "chess-commentary-automatic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/interimadd/Chess-Commentary-Automatic.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/interimadd/Chess-Commentary-Automatic/issues"
+  },
+  "homepage": "https://github.com/interimadd/Chess-Commentary-Automatic#readme",
+  "dependencies": {
+    "stockfish": "^8.0.0"
+  }
+}
