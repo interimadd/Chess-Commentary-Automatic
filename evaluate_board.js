@@ -1,19 +1,41 @@
-
 var stockfish = require("stockfish/src/stockfish.js");
 
+/* 評価値配列のindex定数 */
+var WHITE_EVAL_SCORE = 0;
+var BLACK_EVAL_SCORE = 1;
+var TOTAL_EVAL_SCORE = 2;
 
-var EvaluateBoard = function(FEN_format_position,evaluation_time_length) {
+/* FEN形式のポジションと解析時間を入力として、解析を行うクラス。
+　解析が終わるとis_finish_evaluationがtrueになり、解析結果がメンバー変数に格納される */
+var EvaluateBoard = function(FEN_format_position,evaluation_time_length)
+{
+    var self    = this;
+    this.engine = stockfish();
 
-    // 結果を格納するメンバー変数
-    var self        = this;
-    this.best_move  = "";
+    /* 解析結果を格納するメンバー変数 */
+    this.best_move              = "";               // 最善手
+    this.calculated_line        = "";               // エンジンが読んだ筋
+    this.total_evaluation_score = 0;                // 現在の局面の評価値。単位はCP
+    /* 評価値の内訳[White,Black,Total] 単位はCP(100CP=1Pawn)
+    　詳細はstockfishのサイトを参照　→　https://hxim.github.io/Stockfish-Evaluation-Guide/　*/
+    this.material               = [null,null,0];    // コマ数による評価
+    this.imbalance              = [null,null,0];    // NvsB、ポーン形、QvsR+Bとかの差を考慮した評価
+    this.pawn                   = [null,null,0];    // 孤立ポーン、バックワードポーン、ダブルポーン、コネクテッドポーンとかを加味したポーンの評価
+    this.knight                 = [0,0,0];          // アウトポストに行けるかとかを考慮したナイトの評価
+    this.bishop                 = [0,0,0];          // 同色にあるポーンの数とかを考慮したビショップの評価
+    this.rook                   = [0,0,0];          // オープンファイルとかを考慮したルークの評価
+    this.queen                  = [0,0,0];          // ピンされてるとかを考慮したクイーンの評価
+    this.mobility               = [0,0,0];          // 駒の効きを考慮したピースの評価
+    this.king_safety            = [0,0,0];          // キングの安全性の評価
+    this.threats                = [0,0,0];          // 駒が取られそうかどうかに関する評価
+    this.passed_pawn            = [0,0,0];          // ブロックされてるかとかを考慮したパスポーンのボーナス
+    this.space                  = [0,0,0];          // 自分が支配しているエリアの広さ
 
     /* チェスエンジンを起動する */
-    this.engine    = stockfish();
+    this.is_finish_evaluation = false;
     this.engine.postMessage("uci");
 
-    /////////////* ここまでコンストラクタ *////////////////
-    
+    /////////////* ここまでコンストラクタ *////////////////    
     /* 処理のメイン部分　エンジンから送られてくるメッセージを解析して処理する */
     this.engine.onmessage = function(line) {
     
@@ -35,18 +57,33 @@ var EvaluateBoard = function(FEN_format_position,evaluation_time_length) {
             var f = this;
             setTimeout( function (){f.send("stop");} , 1000 * evaluation_time_length); // 何秒後に候補手探索を打ち切るかを設定
         }
+        else if(line.indexOf("Total Evaluation:") > -1){
+            match = line.match(/Total Evaluation:\s+(\S+)/);
+            if(match){ self.total_evaluation_score = match[1]; }
+        }
         // 候補手探索が打ち切られると通知される最善手に対する処理
         else if (line.indexOf("bestmove") > -1) {
-            match = line.match(/bestmove\s+(\S+)/);
-            if (match) {
-                //console.log("Best move: " + match[1]);
-                self.best_move = match[1];
-                process.exit();
-            }
+            match = line.match(/bestmoveSan\s+(\S+)/);
+            if (match) { self.best_move = match[1]; }
+            self.is_finish_evaluation = true;
         }
     };
 
 }
 
+
+/* 局面評価クラスの使用方法のイメージ　*/
+/* 解析が終わるのを待って処理するいい方法がわかってないので、とりあえずの実装です... */
 var position = "fen rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2";
 var evaluator = new EvaluateBoard(position,2);
+waitUntilEvaluationFinsih()
+
+function waitUntilEvaluationFinsih() { 
+    if( evaluator.is_finish_evaluation == true )
+    {
+        console.log("\n\nEvaluation Finsh.\nPsition Evaluation Score is " + evaluator.total_evaluation_score + "\nBest move is " + evaluator.best_move);
+        process.exit();
+        return; 
+    }
+    setTimeout(function(){ waitUntilEvaluationFinsih(); }, 500);
+}
