@@ -69,21 +69,21 @@ var EvaluateBoard = function(FEN_format_position,evaluation_time_length)
         }
     };
 
+    this.executeCallbackfuncAfterEvaluationFinish = function(callback_func){
+        if( this.is_finish_evaluation == true )
+        {
+            callback_func();
+            return; 
+        }
+        setTimeout(function(){ self.executeCallbackfuncAfterEvaluationFinish(callback_func); }, 500);
+    };
+
 }
 
 
 /* 局面評価クラスの使用方法のイメージ　*/
-/* 解析が終わるのを待って処理するいい方法がわかってないので、とりあえずの実装です... */
 var position = "fen rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2";
 var evaluator = new EvaluateBoard(position,2);
-waitUntilEvaluationFinsih()
-
-function waitUntilEvaluationFinsih() { 
-    if( evaluator.is_finish_evaluation == true )
-    {
-        console.log("\n\nEvaluation Finsh.\nPsition Evaluation Score is " + evaluator.total_evaluation_score + "\nBest move is " + evaluator.best_move);
-        process.exit();
-        return; 
-    }
-    setTimeout(function(){ waitUntilEvaluationFinsih(); }, 500);
-}
+evaluator.executeCallbackfuncAfterEvaluationFinish( function(){
+    console.log("\n\nEvaluation Finsh.\nPsition Evaluation Score is " + evaluator.total_evaluation_score + "\nBest move is " + evaluator.best_move);
+});
